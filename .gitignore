@@ -1,0 +1,21 @@
+# --- Backend (Python / Django) ---
+__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+venv/
+env/
+staticfiles/
+media/
+*.log
+
+# --- Frontend (Angular / Node) ---
+node_modules/
+dist/
+.angular/
+
+# --- Éditeurs / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
