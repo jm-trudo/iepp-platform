@@ -131,3 +131,7 @@ SWAGGER_SETTINGS = {
     },
     "USE_SESSION_AUTH": False,
 }
+# --- Identité de la circonscription (utilisée dans les en-têtes PDF) ---
+IEPP_CIRCONSCRIPTION_NOM = config(
+    "IEPP_CIRCONSCRIPTION_NOM", default="Circonscription de l'Enseignement Préscolaire et Primaire"
+)

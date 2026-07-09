@@ -8,7 +8,14 @@ from apps.teachers.models import Classe
 from apps.students.models import Student
 from apps.evaluations.models import Note, Matiere
 from apps.authorizations.models import AuthorizationRequest, StatutDemande
-
+from django.http import FileResponse
+from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
+from apps.users.models import Role
+from apps.schools.models import School
+from apps.teachers.models import Classe
+from apps.students.models import Student
+from . import generators
 
 def _arrondi(valeur):
     return round(float(valeur), 2) if valeur is not None else None
@@ -154,3 +161,106 @@ class DashboardView(APIView):
             "matieres_faibles": matieres_faibles,
             "commentaires": commentaires,
         }
+    
+
+
+def _pdf_response(buffer, nom_fichier):
+    return FileResponse(buffer, as_attachment=True, filename=nom_fichier)
+
+
+class EcolesPdfView(APIView):
+    """GET /api/reports/ecoles/pdf/ — réservé Admin/Chef IEPP."""
+    permission_classes = [IsAdminOrChefIEPP]
+
+    def get(self, request):
+        buffer = generators.liste_ecoles_pdf(School.objects.select_related("directeur", "secteur"))
+        return _pdf_response(buffer, "liste_ecoles.pdf")
+
+
+class EnseignantsPdfView(APIView):
+    """GET /api/reports/enseignants/pdf/?ecole=<id> — Admin/Chef IEPP (tout), Directeur (son école)."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        qs = User.objects.filter(role=Role.INSTITUTEUR).select_related("teacher_profile")
+        ecole_id = request.query_params.get("ecole")
+
+        if user.role == Role.DIRECTEUR:
+            qs = qs.filter(teacher_profile__ecole__directeur=user)
+        elif user.role not in (Role.ADMIN, Role.CHEF_IEPP):
+            return Response({"detail": "Non autorisé."}, status=403)
+        elif ecole_id:
+            qs = qs.filter(teacher_profile__ecole_id=ecole_id)
+
+        buffer = generators.liste_enseignants_pdf(qs)
+        return _pdf_response(buffer, "liste_enseignants.pdf")
+
+
+class ElevesPdfView(APIView):
+    """GET /api/reports/eleves/pdf/?classe=<id> — Admin/Chef IEPP/Directeur/Instituteur, selon leur périmètre."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        classe_id = request.query_params.get("classe")
+        qs = Student.objects.select_related("classe", "ecole")
+        titre_complement = ""
+
+        if classe_id:
+            classe = get_object_or_404(Classe, pk=classe_id)
+            autorise = (
+                user.role in (Role.ADMIN, Role.CHEF_IEPP)
+                or (user.role == Role.DIRECTEUR and classe.ecole.directeur_id == user.id)
+                or (user.role == Role.INSTITUTEUR and classe.enseignants.filter(user=user).exists())
+            )
+            if not autorise:
+                return Response({"detail": "Non autorisé."}, status=403)
+            qs = qs.filter(classe=classe)
+            titre_complement = str(classe)
+        else:
+            if user.role in (Role.ADMIN, Role.CHEF_IEPP):
+                pass
+            elif user.role == Role.DIRECTEUR:
+                qs = qs.filter(ecole__directeur=user)
+            elif user.role == Role.INSTITUTEUR:
+                qs = qs.filter(classe__enseignants__user=user)
+            else:
+                return Response({"detail": "Non autorisé."}, status=403)
+
+        buffer = generators.liste_eleves_pdf(qs, titre_complement)
+        return _pdf_response(buffer, "liste_eleves.pdf")
+
+
+class BulletinPdfView(APIView):
+    """GET /api/reports/bulletin/<eleve_id>/pdf/?annee_scolaire=2025-2026"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, eleve_id):
+        eleve = get_object_or_404(Student, pk=eleve_id)
+        user = request.user
+        autorise = (
+            user.role in (Role.ADMIN, Role.CHEF_IEPP)
+            or (user.role == Role.DIRECTEUR and eleve.ecole.directeur_id == user.id)
+            or (user.role == Role.INSTITUTEUR and eleve.classe.enseignants.filter(user=user).exists())
+        )
+        if not autorise:
+            return Response({"detail": "Non autorisé."}, status=403)
+
+        annee = request.query_params.get("annee_scolaire")
+        if not annee:
+            return Response({"detail": "Le paramètre annee_scolaire est requis."}, status=400)
+
+        buffer = generators.bulletin_eleve_pdf(eleve, annee)
+        return _pdf_response(buffer, f"bulletin_{eleve.nom}_{eleve.prenoms}.pdf")
+
+
+class StatistiquesPdfView(APIView):
+    """GET /api/reports/statistiques/pdf/?annee_scolaire=2025-2026 — réservé Admin/Chef IEPP."""
+    permission_classes = [IsAdminOrChefIEPP]
+
+    def get(self, request):
+        annee = request.query_params.get("annee_scolaire")
+        donnees = DashboardView().get(request).data  # réutilise le calcul déjà écrit à la Section 10
+        buffer = generators.statistiques_pdf(donnees, annee)
+        return _pdf_response(buffer, "statistiques_circonscription.pdf")  
