@@ -14,8 +14,8 @@ schema_view = get_schema_view(
         default_version="v1",
         description="API REST de la plateforme de gestion de circonscription scolaire",
     ),
-    public=False,
-    permission_classes=(permissions.IsAuthenticated,),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
 )
 
 urlpatterns = [

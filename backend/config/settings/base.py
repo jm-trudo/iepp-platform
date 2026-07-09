@@ -120,4 +120,14 @@ CORS_ALLOWED_ORIGINS = config(
     cast=Csv(),
 )
 
-# --- Base de données : voir dev.py / prod.py ---
+# --- Configuration Swagger pour l'authentification JWT ---
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+        }
+    },
+    "USE_SESSION_AUTH": False,
+}
