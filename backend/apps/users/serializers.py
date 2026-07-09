@@ -51,3 +51,43 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data
         return data
+    
+from .models import DirectorProfile
+
+
+class DirectorProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DirectorProfile
+        fields = ["sexe", "date_naissance", "date_prise_fonction"]
+
+
+class DirectorSerializer(serializers.ModelSerializer):
+    """
+    Fiche directeur complète : identité (User) + informations
+    spécifiques (DirectorProfile) + école affectée (lecture seule).
+    """
+    profile = DirectorProfileSerializer(source="director_profile")
+    ecole_affectee = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id", "username", "email", "first_name", "last_name",
+            "telephone", "matricule", "is_active",
+            "profile", "ecole_affectee",
+        ]
+        read_only_fields = ["id"]
+
+    def get_ecole_affectee(self, obj):
+        ecole = obj.ecole_dirigee.first()
+        if ecole:
+            return {"id": ecole.id, "nom": ecole.nom, "code": ecole.code}
+        return None
+
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop("director_profile", {})
+        instance = super().update(instance, validated_data)
+        DirectorProfile.objects.update_or_create(
+            user=instance, defaults=profile_data
+        )
+        return instance

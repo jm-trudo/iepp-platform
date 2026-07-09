@@ -13,3 +13,10 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = UserAdmin.add_fieldsets + (
         ("Informations IEPP", {"fields": ("role", "telephone", "matricule")}),
     )
+from .models import DirectorProfile
+
+
+@admin.register(DirectorProfile)
+class DirectorProfileAdmin(admin.ModelAdmin):
+    list_display = ("user", "sexe", "date_naissance", "date_prise_fonction")
+    search_fields = ("user__username", "user__last_name")
