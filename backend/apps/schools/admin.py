@@ -13,3 +13,10 @@ class SchoolAdmin(admin.ModelAdmin):
     list_display = ("nom", "code", "type_ecole", "milieu", "directeur", "secteur")
     list_filter = ("type_ecole", "milieu", "secteur")
     search_fields = ("nom", "code")
+
+from .models import ConseillerProfile
+
+
+@admin.register(ConseillerProfile)
+class ConseillerProfileAdmin(admin.ModelAdmin):
+    list_display = ("user", "secteur")

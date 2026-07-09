@@ -29,3 +29,17 @@ class SchoolPermission(permissions.BasePermission):
         if request.method in ("PUT", "PATCH") and request.user.role == Role.DIRECTEUR:
             return obj.directeur_id == request.user.id
         return False
+    
+class ConseillerManagePermission(permissions.BasePermission):
+    """
+    - Admin / Chef IEPP : accès complet (y compris affectation du secteur).
+    - Conseiller : consultation/modification de sa propre fiche uniquement,
+      sans pouvoir s'auto-affecter un secteur.
+    """
+    def has_permission(self, request, view):
+        return request.user.role in (Role.ADMIN, Role.CHEF_IEPP, Role.CONSEILLER)
+
+    def has_object_permission(self, request, view, obj):
+        if request.user.role in (Role.ADMIN, Role.CHEF_IEPP):
+            return True
+        return obj.id == request.user.id   

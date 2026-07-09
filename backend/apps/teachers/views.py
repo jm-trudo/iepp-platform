@@ -13,8 +13,12 @@ class ClasseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Classe.objects.select_related("ecole").all()
-        if user.role in (Role.ADMIN, Role.CHEF_IEPP, Role.CONSEILLER):
+        if user.role in (Role.ADMIN, Role.CHEF_IEPP):
             return qs
+        if user.role == Role.CONSEILLER:
+         profile = getattr(user, "conseiller_profile", None)
+         secteur = profile.secteur if profile else None
+         return qs.filter(ecole__secteur=secteur) if secteur else qs.none()
         if user.role == Role.DIRECTEUR:
             return qs.filter(ecole__directeur=user)
         if user.role == Role.INSTITUTEUR:

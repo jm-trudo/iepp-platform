@@ -4,10 +4,6 @@ from apps.users.models import Role
 
 
 class Sector(models.Model):
-    """
-    Secteur pédagogique — version minimale.
-    Sera complété à la Section 5 (conseiller pédagogique responsable, etc.)
-    """
     nom = models.CharField(max_length=150, unique=True)
 
     class Meta:
@@ -16,7 +12,6 @@ class Sector(models.Model):
 
     def __str__(self):
         return self.nom
-
 
 class TypeEcole(models.TextChoices):
     PUBLIQUE = "PUBLIQUE", "Publique"
@@ -90,3 +85,27 @@ class School(models.Model):
         if hasattr(self, "classes"):
             return self.classes.count()
         return 0
+    
+
+class ConseillerProfile(models.Model):
+    """
+    Complément d'information pour les utilisateurs ayant le rôle CONSEILLER.
+    Les écoles suivies ne sont pas dupliquées ici : elles se lisent via
+    secteur.ecoles (relation déjà définie par School.secteur).
+    """
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="conseiller_profile",
+    )
+    secteur = models.ForeignKey(
+        Sector, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="conseillers",
+    )
+
+    class Meta:
+        verbose_name = "Fiche Conseiller pédagogique"
+        verbose_name_plural = "Fiches Conseillers pédagogiques"
+
+    def __str__(self):
+        return f"Fiche conseiller : {self.user.get_full_name() or self.user.username}"
