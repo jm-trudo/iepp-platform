@@ -1,3 +1,9 @@
 from django.contrib import admin
+from .models import Student
 
-# Enregistrement des modèles dans l'admin Django (ajouté par module).
+
+@admin.register(Student)
+class StudentAdmin(admin.ModelAdmin):
+    list_display = ("nom", "prenoms", "classe", "ecole", "sexe", "date_naissance")
+    list_filter = ("ecole", "classe", "sexe")
+    search_fields = ("nom", "prenoms")
