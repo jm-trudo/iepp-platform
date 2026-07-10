@@ -1,8 +1,13 @@
-from rest_framework import viewsets, generics, permissions
+from rest_framework import viewsets, generics, permissions, serializers
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import User
 from .serializers import UserSerializer, UserCreateSerializer, CustomTokenObtainPairSerializer
 from .permissions import IsAdminOrChefIEPP
+from .models import Role, DirectorProfile
+from .serializers import DirectorSerializer
+from rest_framework import generics
+from .models import AuditLog
+from .models import User, Role, DirectorProfile, AuditLog
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -29,10 +34,6 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserCreateSerializer
         return UserSerializer
     
-from .models import Role, DirectorProfile
-from .serializers import DirectorSerializer
-from .permissions import IsAdminOrChefIEPP
-
 
 class DirectorViewSet(viewsets.ModelViewSet):
     """
@@ -70,3 +71,22 @@ class DirectorViewSet(viewsets.ModelViewSet):
                 "date_prise_fonction", None
             )
         serializer.save()
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    utilisateur_nom = serializers.CharField(source="utilisateur.get_full_name", read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = [
+            "id", "utilisateur", "utilisateur_nom", "action",
+            "modele", "objet_id", "objet_repr", "date_action",
+        ]
+
+
+class AuditLogListView(generics.ListAPIView):
+    """GET /api/auth/audit-log/ — réservé Admin/Chef IEPP, lecture seule."""
+    serializer_class = AuditLogSerializer
+    permission_classes = [IsAdminOrChefIEPP]
+    queryset = AuditLog.objects.select_related("utilisateur")
+    filterset_fields = ["action", "modele", "utilisateur"]        

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from .fields import EncryptedCharField
 
 
 class Role(models.TextChoices):
@@ -23,7 +24,7 @@ class User(AbstractUser):
         default=Role.INSTITUTEUR,
         verbose_name="Rôle",
     )
-    telephone = models.CharField(max_length=20, blank=True)
+    telephone = EncryptedCharField(max_length=255, blank=True)
     matricule = models.CharField(max_length=30, blank=True)
 
     def __str__(self):
@@ -59,3 +60,37 @@ class DirectorProfile(models.Model):
 
     def __str__(self):
         return f"Fiche directeur : {self.user.get_full_name() or self.user.username}"
+    
+class ActionAudit(models.TextChoices):
+       CREATION = "CREATION", "Création"
+       MODIFICATION = "MODIFICATION", "Modification"
+       SUPPRESSION = "SUPPRESSION", "Suppression"
+
+
+class AuditLog(models.Model):
+    """
+    Journal des actions : qui a créé/modifié/supprimé quelle donnée, et quand.
+    Alimenté automatiquement par les signaux (voir apps/users/signals.py).
+    """
+    utilisateur = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="actions_journalisees",
+    )
+    action = models.CharField(max_length=15, choices=ActionAudit.choices)
+    modele = models.CharField(max_length=100, verbose_name="Modèle concerné")
+    objet_id = models.CharField(max_length=50, verbose_name="ID de l'objet")
+    objet_repr = models.CharField(max_length=255, blank=True, verbose_name="Représentation de l'objet")
+    date_action = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Journal d'action"
+        verbose_name_plural = "Journal des actions"
+        ordering = ["-date_action"]
+        indexes = [
+            models.Index(fields=["modele", "objet_id"]),
+            models.Index(fields=["-date_action"]),
+        ]
+
+    def __str__(self):
+        return f"{self.get_action_display()} — {self.modele}#{self.objet_id} par {self.utilisateur}"

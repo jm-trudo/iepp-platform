@@ -1,13 +1,26 @@
+import threading
+
+_thread_locals = threading.local()
+
+
+def get_current_user():
+    return getattr(_thread_locals, "user", None)
+
+
 class AuditLogMiddleware:
     """
-    Squelette du middleware de journalisation des actions utilisateurs
-    (qui a créé/modifié quelle donnée, à quelle date).
-    Sera implémenté en détail dans la section "Sécurité / Journal des actions".
+    Rend l'utilisateur de la requête courante accessible aux signaux
+    Django (post_save/post_delete), qui n'ont normalement pas accès
+    à la requête HTTP.
     """
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        response = self.get_response(request)
+        _thread_locals.user = getattr(request, "user", None)
+        try:
+            response = self.get_response(request)
+        finally:
+            _thread_locals.user = None
         return response

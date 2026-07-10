@@ -95,7 +95,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # --- Django REST Framework ---
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.users.authentication.AuditingJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
@@ -135,3 +135,5 @@ SWAGGER_SETTINGS = {
 IEPP_CIRCONSCRIPTION_NOM = config(
     "IEPP_CIRCONSCRIPTION_NOM", default="Circonscription de l'Enseignement Préscolaire et Primaire"
 )
+
+FIELD_ENCRYPTION_KEY = config("FIELD_ENCRYPTION_KEY")

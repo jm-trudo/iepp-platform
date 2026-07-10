@@ -1,6 +1,7 @@
 from django.db import models
 from apps.schools.models import School
 from apps.teachers.models import Classe, Sexe
+from apps.users.fields import EncryptedCharField
 
 
 class Student(models.Model):
@@ -18,7 +19,7 @@ class Student(models.Model):
     )
 
     nom_parent = models.CharField(max_length=150, verbose_name="Nom du parent/tuteur", blank=True)
-    contact_parent = models.CharField(max_length=30, verbose_name="Contact parent/tuteur", blank=True)
+    contact_parent = EncryptedCharField(max_length=255, verbose_name="Contact parent/tuteur", blank=True)
 
     date_inscription = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
