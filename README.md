@@ -81,6 +81,18 @@ La gestion fine des permissions sera implémentée dans le module `users`
 - [ ] Section 11 — Module 9 : Rapports et impressions PDF
 - [ ] Section 12 — Module 10 : Abonnement annuel (SaaS)
 - [ ] Section 13 — Sécurité (audit, chiffrement, sauvegardes)
+## Sauvegardes
+
+- Sauvegarde automatique quotidienne via `scripts/backup_db.ps1` (Planificateur de tâches Windows).
+- Conserver au minimum 30 jours d'historique local.
+- **Copier régulièrement les sauvegardes hors du serveur** (disque externe,
+  stockage cloud chiffré) — une sauvegarde uniquement locale ne protège pas
+  contre une panne matérielle ou un vol.
+- Tester la restauration périodiquement (`pg_restore`) : une sauvegarde
+  jamais testée n'est pas fiable.
+- La clé `FIELD_ENCRYPTION_KEY` doit être sauvegardée séparément de la base
+  de données, dans un gestionnaire de secrets ou un coffre-fort numérique —
+  sans elle, les sauvegardes de la base sont illisibles.
 - [ ] Section 14 — Frontend Angular : structure des modules et UI (charte orange/blanc/vert)
 - [ ] Section 15 — Tests automatisés
 - [ ] Section 16 — Déploiement (production + GitHub)
