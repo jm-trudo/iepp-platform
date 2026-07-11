@@ -1,0 +1,17 @@
+[Unit]
+Description=Gunicorn - Plateforme IEPP
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/iepp-platform/backend
+Environment="DJANGO_SETTINGS_MODULE=config.settings.prod"
+ExecStart=/var/www/iepp-platform/backend/venv/bin/gunicorn \
+    --config gunicorn.conf.py \
+    config.wsgi:application
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
