@@ -8,11 +8,12 @@ from .models import AuthorizationRequest, StatutDemande
 from .serializers import AuthorizationRequestSerializer, DecisionSerializer
 from .permissions import AuthorizationPermission, IsChefOrAdmin
 from .pdf import generate_authorization_pdf
+from apps.subscriptions.permissions import SubscriptionActivePermission
 
 
 class AuthorizationRequestViewSet(viewsets.ModelViewSet):
     serializer_class = AuthorizationRequestSerializer
-    permission_classes = [AuthorizationPermission]
+    permission_classes = [AuthorizationPermission, SubscriptionActivePermission]
     filterset_fields = ["statut", "ecole"]
 
     def get_queryset(self):

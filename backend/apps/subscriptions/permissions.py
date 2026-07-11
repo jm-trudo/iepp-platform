@@ -31,7 +31,7 @@ class SubscriptionActivePermission(BasePermission):
         if user.role == Role.ADMIN:
             return True
 
-        abonnement = Subscription.objects.order_by("-date_fin").first()
+        abonnement = Subscription.objects.filter(chef=user).order_by("-date_fin").first()
         if not abonnement:
             return True
 

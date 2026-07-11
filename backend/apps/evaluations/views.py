@@ -7,11 +7,12 @@ from apps.users.models import Role
 from .models import Note
 from .serializers import NoteSerializer, BulkNoteSerializer
 from .permissions import NotePermission
+from apps.subscriptions.permissions import SubscriptionActivePermission
 
 
 class NoteViewSet(viewsets.ModelViewSet):
     serializer_class = NoteSerializer
-    permission_classes = [NotePermission]
+    permission_classes = [NotePermission, SubscriptionActivePermission]
     filterset_fields = ["classe", "eleve", "matiere", "composition", "annee_scolaire"]
 
     def get_queryset(self):

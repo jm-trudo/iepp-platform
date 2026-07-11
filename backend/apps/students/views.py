@@ -4,10 +4,11 @@ from apps.users.models import Role
 from .models import Student
 from .serializers import StudentSerializer
 from .permissions import StudentPermission
+from apps.subscriptions.permissions import SubscriptionActivePermission
 
 class StudentViewSet(viewsets.ModelViewSet):
     serializer_class = StudentSerializer
-    permission_classes = [StudentPermission]
+    permission_classes = [StudentPermission, SubscriptionActivePermission]
     filterset_fields = ["classe", "ecole", "sexe"]
     search_fields = ["nom", "prenoms"]
 

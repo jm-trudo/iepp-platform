@@ -16,6 +16,7 @@ from apps.schools.models import School
 from apps.teachers.models import Classe
 from apps.students.models import Student
 from . import generators
+from apps.subscriptions.permissions import SubscriptionActivePermission
 
 def _arrondi(valeur):
     return round(float(valeur), 2) if valeur is not None else None
@@ -28,7 +29,7 @@ class DashboardView(APIView):
     Réservé à l'Admin système et au Chef de Circonscription.
     Filtre optionnel : ?annee_scolaire=2025-2026
     """
-    permission_classes = [IsAdminOrChefIEPP]
+    permission_classes = [IsAdminOrChefIEPP, SubscriptionActivePermission]
 
     def get(self, request):
         annee = request.query_params.get("annee_scolaire")
@@ -170,7 +171,7 @@ def _pdf_response(buffer, nom_fichier):
 
 class EcolesPdfView(APIView):
     """GET /api/reports/ecoles/pdf/ — réservé Admin/Chef IEPP."""
-    permission_classes = [IsAdminOrChefIEPP]
+    permission_classes = [IsAdminOrChefIEPP, SubscriptionActivePermission]
 
     def get(self, request):
         buffer = generators.liste_ecoles_pdf(School.objects.select_related("directeur", "secteur"))
@@ -179,7 +180,7 @@ class EcolesPdfView(APIView):
 
 class EnseignantsPdfView(APIView):
     """GET /api/reports/enseignants/pdf/?ecole=<id> — Admin/Chef IEPP (tout), Directeur (son école)."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, SubscriptionActivePermission]
 
     def get(self, request):
         user = request.user
@@ -199,7 +200,7 @@ class EnseignantsPdfView(APIView):
 
 class ElevesPdfView(APIView):
     """GET /api/reports/eleves/pdf/?classe=<id> — Admin/Chef IEPP/Directeur/Instituteur, selon leur périmètre."""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, SubscriptionActivePermission]
 
     def get(self, request):
         user = request.user
@@ -234,7 +235,7 @@ class ElevesPdfView(APIView):
 
 class BulletinPdfView(APIView):
     """GET /api/reports/bulletin/<eleve_id>/pdf/?annee_scolaire=2025-2026"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, SubscriptionActivePermission]
 
     def get(self, request, eleve_id):
         eleve = get_object_or_404(Student, pk=eleve_id)
@@ -257,7 +258,7 @@ class BulletinPdfView(APIView):
 
 class StatistiquesPdfView(APIView):
     """GET /api/reports/statistiques/pdf/?annee_scolaire=2025-2026 — réservé Admin/Chef IEPP."""
-    permission_classes = [IsAdminOrChefIEPP]
+    permission_classes = [IsAdminOrChefIEPP, SubscriptionActivePermission]
 
     def get(self, request):
         annee = request.query_params.get("annee_scolaire")

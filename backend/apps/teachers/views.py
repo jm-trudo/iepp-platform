@@ -3,11 +3,12 @@ from apps.users.models import User, Role
 from .models import Classe, TeacherProfile
 from .serializers import ClasseSerializer, TeacherSerializer
 from .permissions import ClassePermission, TeacherManagePermission
+from apps.subscriptions.permissions import SubscriptionActivePermission
 
 
 class ClasseViewSet(viewsets.ModelViewSet):
     serializer_class = ClasseSerializer
-    permission_classes = [ClassePermission]
+    permission_classes = [ClassePermission, SubscriptionActivePermission]
     filterset_fields = ["ecole", "niveau"]
 
     def get_queryset(self):
@@ -28,7 +29,7 @@ class ClasseViewSet(viewsets.ModelViewSet):
 
 class TeacherViewSet(viewsets.ModelViewSet):
     serializer_class = TeacherSerializer
-    permission_classes = [TeacherManagePermission]
+    permission_classes = [TeacherManagePermission, SubscriptionActivePermission]
     queryset = User.objects.filter(role=Role.INSTITUTEUR).select_related("teacher_profile")
 
     def get_queryset(self):

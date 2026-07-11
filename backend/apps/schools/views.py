@@ -3,17 +3,18 @@ from apps.users.models import User, Role
 from .models import School, Sector, ConseillerProfile
 from .serializers import SchoolSerializer, SectorSerializer, ConseillerSerializer
 from .permissions import SchoolPermission, ConseillerManagePermission
+from apps.subscriptions.permissions import SubscriptionActivePermission
 
 
 class SectorViewSet(viewsets.ModelViewSet):
     queryset = Sector.objects.all().order_by("nom")
     serializer_class = SectorSerializer
-    permission_classes = [SchoolPermission]
+    permission_classes = [SchoolPermission, SubscriptionActivePermission]
 
 
 class ConseillerViewSet(viewsets.ModelViewSet):
     serializer_class = ConseillerSerializer
-    permission_classes = [ConseillerManagePermission]
+    permission_classes = [SchoolPermission, SubscriptionActivePermission]
     queryset = User.objects.filter(role=Role.CONSEILLER).select_related("conseiller_profile")
 
     def get_queryset(self):
@@ -37,7 +38,7 @@ def _secteur_de(user):
 
 class SchoolViewSet(viewsets.ModelViewSet):
     serializer_class = SchoolSerializer
-    permission_classes = [SchoolPermission]
+    permission_classes = [SchoolPermission, SubscriptionActivePermission]
     filterset_fields = ["type_ecole", "milieu", "secteur"]
     search_fields = ["nom", "code"]
 
@@ -48,13 +49,13 @@ class SchoolViewSet(viewsets.ModelViewSet):
         if user.role in (Role.ADMIN, Role.CHEF_IEPP):
             return qs
         if user.role == Role.CONSEILLER:
-         profile = getattr(user, "conseiller_profile", None)
-        secteur = profile.secteur if profile else None
-        return qs.filter(ecole__secteur=secteur) if secteur else qs.none()
+            profile = getattr(user, "conseiller_profile", None)
+            secteur = profile.secteur if profile else None
+            return qs.filter(secteur=secteur) if secteur else qs.none()
         if user.role == Role.DIRECTEUR:
             return qs.filter(directeur=user)
         return qs
-
+    
     def perform_create(self, serializer):
         user = self.request.user
         if user.role == Role.DIRECTEUR:
