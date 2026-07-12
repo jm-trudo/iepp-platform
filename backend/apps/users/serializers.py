@@ -91,3 +91,4 @@ class DirectorSerializer(serializers.ModelSerializer):
             user=instance, defaults=profile_data
         )
         return instance
+    

@@ -22,9 +22,12 @@ class ClasseSerializer(serializers.ModelSerializer):
 
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
+    ecole_nom = serializers.CharField(source="ecole.nom", read_only=True)
+    classe_display = serializers.CharField(source="classe.__str__", read_only=True)
+
     class Meta:
         model = TeacherProfile
-        fields = ["ecole", "classe", "sexe", "date_affectation"]
+        fields = ["ecole", "ecole_nom", "classe", "classe_display", "sexe", "date_affectation"]
 
 
 class TeacherSerializer(serializers.ModelSerializer):
