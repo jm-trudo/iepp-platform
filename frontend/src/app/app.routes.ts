@@ -81,6 +81,21 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/teachers/teacher-form.component').then((m) => m.TeacherFormComponent),
       },
+      {
+        path: 'students',
+        loadComponent: () =>
+          import('./features/students/student-list.component').then((m) => m.StudentListComponent),
+      },
+      {
+        path: 'students/nouveau',
+        loadComponent: () =>
+          import('./features/students/student-form.component').then((m) => m.StudentFormComponent),
+      },
+      {
+        path: 'students/:id',
+        loadComponent: () =>
+          import('./features/students/student-form.component').then((m) => m.StudentFormComponent),
+      },
     ],
   },
 ];
