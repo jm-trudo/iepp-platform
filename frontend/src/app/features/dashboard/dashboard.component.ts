@@ -2,59 +2,45 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { MatCardModule } from '@angular/material/card';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatButtonModule } from '@angular/material/button';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/services/auth.service';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatToolbarModule, MatButtonModule],
+  imports: [CommonModule, MatCardModule, MatIconModule],
   template: `
-    <mat-toolbar class="iepp-topbar">
-      <span>Plateforme IEPP</span>
-      <span class="espace"></span>
-      @if (auth.currentUser(); as user) {
-        <span class="info-utilisateur">
-          {{ user.first_name }} {{ user.last_name }} — {{ user.role_display }}
-        </span>
-      }
-      <button mat-button (click)="auth.logout()">Déconnexion</button>
-    </mat-toolbar>
+    <h2>Tableau de bord</h2>
 
-    <div class="contenu-dashboard">
-      <h2>Tableau de bord</h2>
-
-      @if (stats(); as s) {
-        <div class="grille-stats">
-          <div class="iepp-carte"><span class="valeur">{{ s.statistiques_generales.nombre_ecoles }}</span><span>Écoles</span></div>
-          <div class="iepp-carte"><span class="valeur">{{ s.statistiques_generales.nombre_enseignants }}</span><span>Enseignants</span></div>
-          <div class="iepp-carte"><span class="valeur">{{ s.statistiques_generales.nombre_eleves }}</span><span>Élèves</span></div>
-          <div class="iepp-carte"><span class="valeur">{{ s.statistiques_generales.nombre_classes }}</span><span>Classes</span></div>
-          <div class="iepp-carte"><span class="valeur">{{ s.statistiques_generales.nombre_demandes_en_attente }}</span><span>Demandes en attente</span></div>
-        </div>
-      } @else {
-        <p>Chargement des statistiques...</p>
-      }
-    </div>
+    @if (stats(); as s) {
+      <div class="grille-stats">
+        <div class="iepp-carte carte-stat"><mat-icon>apartment</mat-icon><span class="valeur">{{ s.statistiques_generales.nombre_ecoles }}</span><span>Écoles</span></div>
+        <div class="iepp-carte carte-stat"><mat-icon>school</mat-icon><span class="valeur">{{ s.statistiques_generales.nombre_enseignants }}</span><span>Enseignants</span></div>
+        <div class="iepp-carte carte-stat"><mat-icon>groups</mat-icon><span class="valeur">{{ s.statistiques_generales.nombre_eleves }}</span><span>Élèves</span></div>
+        <div class="iepp-carte carte-stat"><mat-icon>meeting_room</mat-icon><span class="valeur">{{ s.statistiques_generales.nombre_classes }}</span><span>Classes</span></div>
+        <div class="iepp-carte carte-stat"><mat-icon>assignment_late</mat-icon><span class="valeur">{{ s.statistiques_generales.nombre_demandes_en_attente }}</span><span>Demandes en attente</span></div>
+      </div>
+    } @else {
+      <p>Chargement des statistiques...</p>
+    }
   `,
   styles: [`
-    .espace { flex: 1; }
-    .info-utilisateur { margin-right: 16px; font-size: 0.9em; }
-    .contenu-dashboard { padding: 24px; }
     .grille-stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 16px;
       margin-top: 16px;
     }
-    .grille-stats .iepp-carte {
+    .carte-stat {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
+      gap: 6px;
+      padding: 20px;
     }
+    .carte-stat mat-icon { color: var(--iepp-orange); font-size: 32px; width: 32px; height: 32px; }
     .valeur { font-size: 2em; font-weight: bold; color: var(--iepp-orange); }
   `],
 })

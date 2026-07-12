@@ -136,3 +136,48 @@ authentification JWT, permissions par rôle (IEPP, Directeur, Instituteur,
 Conseiller pédagogique), endpoints `/api/auth/`.
 
 Dites-moi quand vous voulez que j'enchaîne dessus.
+
+# Déploiement — fichiers de configuration serveur
+
+Ce dossier contient les fichiers à copier sur le serveur de production
+au moment du déploiement (voir Section 16 du projet).
+
+## nginx/iepp-platform.conf
+
+1. Remplacer `votre-domaine.com` par le vrai nom de domaine
+2. Copier sur le serveur :
+   \`\`\`bash
+   sudo cp deploy/nginx/iepp-platform.conf /etc/nginx/sites-available/iepp-platform
+   sudo ln -s /etc/nginx/sites-available/iepp-platform /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl restart nginx
+   \`\`\`
+
+## gunicorn/gunicorn.conf.py
+
+Se place dans `backend/`, à côté de `manage.py` :
+\`\`\`bash
+cp deploy/gunicorn/gunicorn.conf.py backend/gunicorn.conf.py
+\`\`\`
+
+## systemd/iepp-backend.service
+
+Permet à Gunicorn de démarrer automatiquement au boot du serveur et de
+redémarrer en cas de plantage :
+\`\`\`bash
+sudo cp deploy/systemd/iepp-backend.service /etc/systemd/system/iepp-backend.service
+sudo systemctl daemon-reload
+sudo systemctl enable iepp-backend
+sudo systemctl start iepp-backend
+sudo systemctl status iepp-backend
+\`\`\`
+
+## Ordre d'exécution recommandé au premier déploiement
+
+1. Cloner le dépôt sur le serveur
+2. Configurer le backend (venv, `.env`, migrate, collectstatic) — voir README principal
+3. Copier `gunicorn.conf.py` dans `backend/`
+4. Copier et activer le service systemd
+5. Build Angular en local, transférer le résultat sur le serveur
+6. Copier et activer la configuration Nginx
+7. Activer HTTPS avec Certbot
