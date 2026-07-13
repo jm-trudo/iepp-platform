@@ -96,6 +96,16 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/students/student-form.component').then((m) => m.StudentFormComponent),
       },
+      {
+        path: 'evaluations',
+        loadComponent: () =>
+          import('./features/evaluations/note-list.component').then((m) => m.NoteListComponent),
+      },
+      {
+        path: 'evaluations/saisie',
+        loadComponent: () =>
+          import('./features/evaluations/note-entry.component').then((m) => m.NoteEntryComponent),
+      },
     ],
   },
 ];
