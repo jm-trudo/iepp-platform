@@ -12,6 +12,7 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { TeacherService } from '../../core/services/teacher.service';
 import { UserService } from '../../core/services/user.service';
 import { SchoolService } from '../../core/services/school.service';
+import { AuthService } from '../../core/services/auth.service';
 import { School } from '../../core/models/school.model';
 import { Classe } from '../../core/models/classe.model';
 
@@ -117,6 +118,7 @@ export class TeacherFormComponent implements OnInit {
     private teacherService: TeacherService,
     private userService: UserService,
     private schoolService: SchoolService,
+    public auth: AuthService,
     private route: ActivatedRoute,
     private router: Router,
     private snackBar: MatSnackBar,
@@ -134,7 +136,14 @@ export class TeacherFormComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.schoolService.liste().subscribe((r) => this.ecoles.set(r.results));
+    this.schoolService.liste().subscribe((r) => {
+      this.ecoles.set(r.results);
+      if (this.auth.hasRole('DIRECTEUR') && r.results.length > 0 && !this.modeEdition()) {
+        const ecoleUnique = r.results[0].id;
+        this.formulaire.patchValue({ ecole: ecoleUnique });
+        this.chargerClassesDeLecole(ecoleUnique);
+      }
+    });
 
     if (!this.modeEdition()) {
       this.formulaire.get('username')!.addValidators(Validators.required);

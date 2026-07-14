@@ -121,6 +121,16 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/subscriptions/subscription-list.component').then((m) => m.SubscriptionListComponent),
       },
+     {
+        path: 'settings/users',
+        loadComponent: () =>
+          import('./features/settings/user-list.component').then((m) => m.UserListComponent),
+      },
+      {
+        path: 'settings/users/nouveau',
+        loadComponent: () =>
+          import('./features/settings/user-form.component').then((m) => m.UserFormComponent),
+      },
     ],
   },
 ];

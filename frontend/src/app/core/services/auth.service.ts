@@ -1,83 +1,411 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import { LoginResponse, User } from '../models/user.model';
+
+
+export interface UserAuth {
+
+  id: number;
+
+  username: string;
+
+  first_name?: string;
+
+  last_name?: string;
+
+  email?: string;
+
+  telephone?: string;
+
+  role: string;
+
+  role_display?: string;
+
+}
+
+
+
+export interface LoginResponse {
+
+  access: string;
+
+  refresh: string;
+
+  user: UserAuth;
+
+}
+
+
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly ACCESS_KEY = 'iepp_access_token';
-  private readonly REFRESH_KEY = 'iepp_refresh_token';
-  private readonly USER_KEY = 'iepp_user';
 
-  currentUser = signal<User | null>(this.lireUtilisateurStocke());
+
+  private apiUrl = 'http://127.0.0.1:8000/api/auth';
+
+
+
+  private utilisateurSubject =
+    new BehaviorSubject<UserAuth | null>(
+      this.getUser()
+    );
+
+
+
+  utilisateur$ =
+    this.utilisateurSubject.asObservable();
+
+
+
 
   constructor(
     private http: HttpClient,
     private router: Router
   ) {}
 
-  login(username: string, password: string): Observable<LoginResponse> {
-    return this.http
-      .post<LoginResponse>(
-        `${environment.apiUrl}/auth/login/`,
-        { username, password }
-      )
-      .pipe(
-        tap((reponse) => {
-          localStorage.setItem(this.ACCESS_KEY, reponse.access);
-          localStorage.setItem(this.REFRESH_KEY, reponse.refresh);
-          localStorage.setItem(this.USER_KEY, JSON.stringify(reponse.user));
-          this.currentUser.set(reponse.user);
-        })
-      );
+
+
+
+
+  login(
+    username: string,
+    password: string
+  ): Observable<LoginResponse> {
+
+
+    return this.http.post<LoginResponse>(
+      `${this.apiUrl}/login/`,
+      {
+        username,
+        password
+      }
+
+    ).pipe(
+
+
+      tap((response)=>{
+
+
+        localStorage.setItem(
+          'access',
+          response.access
+        );
+
+
+        localStorage.setItem(
+          'refresh',
+          response.refresh
+        );
+
+
+
+        localStorage.setItem(
+          'user',
+          JSON.stringify(response.user)
+        );
+
+
+
+        this.utilisateurSubject.next(
+          response.user
+        );
+
+
+      })
+
+
+    );
+
+
   }
+
+
+
+
+
 
   logout(): void {
-    localStorage.removeItem(this.ACCESS_KEY);
-    localStorage.removeItem(this.REFRESH_KEY);
-    localStorage.removeItem(this.USER_KEY);
-    this.currentUser.set(null);
-    this.router.navigate(['/login']);
+
+
+    localStorage.removeItem('access');
+
+    localStorage.removeItem('refresh');
+
+    localStorage.removeItem('user');
+
+
+
+    this.utilisateurSubject.next(null);
+
+
+
+    this.router.navigate([
+      '/login'
+    ]);
+
+
   }
 
-  refreshToken(): Observable<{ access: string }> {
-    const refresh = localStorage.getItem(this.REFRESH_KEY);
 
-    return this.http
-      .post<{ access: string }>(
-        `${environment.apiUrl}/auth/refresh/`,
-        { refresh }
-      )
-      .pipe(
-        tap((reponse) => {
-          localStorage.setItem(this.ACCESS_KEY, reponse.access);
-        })
-      );
-  }
+
+
+
+
+
 
   getAccessToken(): string | null {
-    return localStorage.getItem(this.ACCESS_KEY);
+
+
+    return localStorage.getItem(
+      'access'
+    );
+
+
   }
+
+
+
+
+
+
 
   getRefreshToken(): string | null {
-    return localStorage.getItem(this.REFRESH_KEY);
+
+
+    return localStorage.getItem(
+      'refresh'
+    );
+
+
   }
+
+
+
+
+
+
+
+
+  refreshToken(): Observable<any> {
+
+
+    return this.http.post(
+      `${this.apiUrl}/refresh/`,
+      {
+        refresh: this.getRefreshToken()
+      }
+
+    ).pipe(
+
+
+      tap((response:any)=>{
+
+
+        localStorage.setItem(
+          'access',
+          response.access
+        );
+
+
+      })
+
+
+    );
+
+
+  }
+
+
+
+
+
+
+
 
   isAuthenticated(): boolean {
-    return this.getAccessToken() !== null;
+
+
+    return !!this.getAccessToken();
+
+
   }
 
-  hasRole(...roles: string[]): boolean {
-    const user = this.currentUser();
-    return !!user && roles.includes(user.role);
+
+
+
+
+
+
+
+  /**
+   * Utilisé dans les composants :
+   *
+   * auth.currentUser()?.first_name
+   *
+   * auth.currentUser()?.role_display
+   */
+  currentUser(): UserAuth | null {
+
+
+    return this.utilisateurSubject.value;
+
+
   }
 
-  private lireUtilisateurStocke(): User | null {
-    const brut = localStorage.getItem(this.USER_KEY);
-    return brut ? JSON.parse(brut) : null;
+
+
+
+
+
+
+
+
+  getUser(): UserAuth | null {
+
+
+    const user =
+      localStorage.getItem('user');
+
+
+
+    if (!user) {
+
+
+      return null;
+
+
+    }
+
+
+
+
+
+    try {
+
+
+      return JSON.parse(user) as UserAuth;
+
+
+    } catch {
+
+
+      return null;
+
+
+    }
+
+
   }
+
+
+
+
+
+
+
+
+
+  hasRole(
+    ...roles: string[]
+  ): boolean {
+
+
+    const user =
+      this.currentUser();
+
+
+
+
+    if (!user) {
+
+
+      return false;
+
+
+    }
+
+
+
+
+
+
+    return roles.includes(
+      user.role
+    );
+
+
+
+  }
+
+
+
+
+
+
+
+  getRoleLabel(): string {
+
+
+    const user =
+      this.currentUser();
+
+
+
+    if (!user) {
+
+
+      return '';
+
+    }
+
+
+
+
+    return user.role_display
+      || this.traduireRole(user.role);
+
+
+
+  }
+
+
+
+
+
+
+
+  private traduireRole(
+    role: string
+  ): string {
+
+
+    const roles: Record<string,string> = {
+
+
+      ADMIN: 'Administrateur système',
+
+      CHEF_IEPP: 'Chef de Circonscription IEPP',
+
+      DIRECTEUR: "Directeur d'école",
+
+      CONSEILLER: 'Conseiller pédagogique',
+
+      INSTITUTEUR: 'Instituteur'
+
+
+    };
+
+
+
+    return roles[role] || role;
+
+
+
+  }
+
+
+
 }

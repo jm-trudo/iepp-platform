@@ -11,6 +11,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { SchoolService } from '../../core/services/school.service';
 import { Sector } from '../../core/models/school.model';
+import { UserService } from '../../core/services/user.service';
+import { AuthService } from '../../core/services/auth.service';
+import { User } from '../../core/models/user.model';
+
+
+
 
 @Component({
   selector: 'app-school-form',

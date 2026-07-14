@@ -49,7 +49,7 @@ import { NavigationService } from '../../core/services/navigation.service';
             <button mat-button [matMenuTriggerFor]="menuUtilisateur" class="bouton-utilisateur">
               <mat-icon>account_circle</mat-icon>
               <span class="nom-utilisateur">{{ user.first_name || user.username }}</span>
-              <span class="badge-role">{{ user.role_display }}</span>
+              <span class="badge-role">{{ auth.getRoleLabel() }}</span>
             </button>
             <mat-menu #menuUtilisateur="matMenu">
               <button mat-menu-item (click)="auth.logout()">
