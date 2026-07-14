@@ -54,7 +54,7 @@ class SchoolViewSet(viewsets.ModelViewSet):
             return qs.filter(secteur=secteur) if secteur else qs.none()
         if user.role == Role.DIRECTEUR:
             return qs.filter(directeur=user)
-        return qs
+        return qs.none()
     
     def perform_create(self, serializer):
         user = self.request.user

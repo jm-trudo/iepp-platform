@@ -106,6 +106,16 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/evaluations/note-entry.component').then((m) => m.NoteEntryComponent),
       },
+      {
+        path: 'authorizations',
+        loadComponent: () =>
+          import('./features/authorizations/authorization-list.component').then((m) => m.AuthorizationListComponent),
+      },
+      {
+        path: 'authorizations/nouveau',
+        loadComponent: () =>
+          import('./features/authorizations/authorization-form.component').then((m) => m.AuthorizationFormComponent),
+      },
     ],
   },
 ];

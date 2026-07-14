@@ -5,7 +5,9 @@ import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { LoginResponse, User } from '../models/user.model';
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class AuthService {
   private readonly ACCESS_KEY = 'iepp_access_token';
   private readonly REFRESH_KEY = 'iepp_refresh_token';
@@ -13,11 +15,17 @@ export class AuthService {
 
   currentUser = signal<User | null>(this.lireUtilisateurStocke());
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router
+  ) {}
 
   login(username: string, password: string): Observable<LoginResponse> {
     return this.http
-      .post<LoginResponse>(`${environment.apiUrl}/auth/login/`, { username, password })
+      .post<LoginResponse>(
+        `${environment.apiUrl}/auth/login/`,
+        { username, password }
+      )
       .pipe(
         tap((reponse) => {
           localStorage.setItem(this.ACCESS_KEY, reponse.access);
@@ -38,9 +46,17 @@ export class AuthService {
 
   refreshToken(): Observable<{ access: string }> {
     const refresh = localStorage.getItem(this.REFRESH_KEY);
+
     return this.http
-      .post<{ access: string }>(`${environment.apiUrl}/auth/refresh/`, { refresh })
-      .pipe(tap((reponse) => localStorage.setItem(this.ACCESS_KEY, reponse.access)));
+      .post<{ access: string }>(
+        `${environment.apiUrl}/auth/refresh/`,
+        { refresh }
+      )
+      .pipe(
+        tap((reponse) => {
+          localStorage.setItem(this.ACCESS_KEY, reponse.access);
+        })
+      );
   }
 
   getAccessToken(): string | null {
@@ -52,7 +68,7 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getAccessToken();
+    return this.getAccessToken() !== null;
   }
 
   hasRole(...roles: string[]): boolean {
