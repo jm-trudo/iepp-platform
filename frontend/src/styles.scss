@@ -42,3 +42,36 @@ html, body {
 .iepp-accent-vert {
   color: var(--iepp-vert);
 }
+
+// --- Responsive : tableaux scrollables sur petits écrans ---
+table[mat-table] {
+  min-width: 600px;
+}
+
+@media (max-width: 768px) {
+  .iepp-carte:has(table[mat-table]) {
+    overflow-x: auto;
+  }
+
+  .entete-page {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+  .entete-page button {
+    width: 100%;
+  }
+
+  .ligne-champs {
+    flex-direction: column;
+    gap: 0 !important;
+  }
+
+  .barre-filtres {
+    flex-direction: column;
+  }
+  .barre-filtres mat-form-field {
+    width: 100%;
+    max-width: none !important;
+  }
+}

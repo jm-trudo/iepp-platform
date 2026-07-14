@@ -116,6 +116,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/authorizations/authorization-form.component').then((m) => m.AuthorizationFormComponent),
       },
+      {
+        path: 'subscriptions',
+        loadComponent: () =>
+          import('./features/subscriptions/subscription-list.component').then((m) => m.SubscriptionListComponent),
+      },
     ],
   },
 ];

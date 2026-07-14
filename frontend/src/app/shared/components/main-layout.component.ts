@@ -1,4 +1,4 @@
-import { Component, computed } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -20,7 +20,7 @@ import { NavigationService } from '../../core/services/navigation.service';
   ],
   template: `
     <mat-sidenav-container class="conteneur-principal">
-      <mat-sidenav mode="side" opened class="menu-lateral">
+      <mat-sidenav #sidenav [mode]="modeMenu()" [opened]="menuOuvert()" class="menu-lateral">
         <div class="entete-menu">
           <mat-icon class="icone-logo">school</mat-icon>
           <span class="titre-app">Plateforme IEPP</span>
@@ -28,7 +28,7 @@ import { NavigationService } from '../../core/services/navigation.service';
 
         <mat-nav-list>
           @for (item of menus(); track item.route) {
-            <a mat-list-item [routerLink]="item.route" routerLinkActive="lien-actif">
+            <a mat-list-item [routerLink]="item.route" routerLinkActive="lien-actif" (click)="fermerSiMobile()">
               <mat-icon matListItemIcon>{{ item.icone }}</mat-icon>
               <span matListItemTitle>{{ item.label }}</span>
             </a>
@@ -38,12 +38,17 @@ import { NavigationService } from '../../core/services/navigation.service';
 
       <mat-sidenav-content>
         <mat-toolbar class="iepp-topbar barre-superieure">
+          @if (estMobile()) {
+            <button mat-icon-button (click)="sidenav.toggle()">
+              <mat-icon>menu</mat-icon>
+            </button>
+          }
           <span class="espace"></span>
 
           @if (auth.currentUser(); as user) {
             <button mat-button [matMenuTriggerFor]="menuUtilisateur" class="bouton-utilisateur">
               <mat-icon>account_circle</mat-icon>
-              {{ user.first_name || user.username }}
+              <span class="nom-utilisateur">{{ user.first_name || user.username }}</span>
               <span class="badge-role">{{ user.role_display }}</span>
             </button>
             <mat-menu #menuUtilisateur="matMenu">
@@ -115,9 +120,15 @@ import { NavigationService } from '../../core/services/navigation.service';
     }
 
     @media (max-width: 768px) {
-      .menu-lateral { width: 200px; }
+      .menu-lateral { width: 220px; }
       .titre-app { font-size: 0.9em; }
       .contenu-page { padding: 12px; }
+      .nom-utilisateur { display: none; }
+      .badge-role { display: none; }
+    }
+
+    @media (max-width: 480px) {
+      .contenu-page { padding: 8px; }
     }
   `],
 })
@@ -127,5 +138,18 @@ export class MainLayoutComponent {
     return user ? this.navigation.menusPourRole(user.role) : [];
   });
 
-  constructor(public auth: AuthService, private navigation: NavigationService) {}
+  estMobile = signal(window.innerWidth < 768);
+  modeMenu = computed(() => (this.estMobile() ? 'over' : 'side'));
+  menuOuvert = computed(() => !this.estMobile());
+
+  constructor(public auth: AuthService, private navigation: NavigationService) {
+    window.addEventListener('resize', () => {
+      this.estMobile.set(window.innerWidth < 768);
+    });
+  }
+
+  fermerSiMobile() {
+    // Le tiroir se referme automatiquement au clic sur un lien, en mode mobile uniquement
+    // (mat-sidenav mode="over" gère déjà la fermeture au clic hors du tiroir).
+  }
 }
