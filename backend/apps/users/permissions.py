@@ -34,3 +34,11 @@ class IsAdminOrChefIEPP(permissions.BasePermission):
             request.user and request.user.is_authenticated
             and request.user.role in (Role.ADMIN, Role.CHEF_IEPP)
         )
+class CanCreateTeacherAccount(permissions.BasePermission):
+    """Admin/Chef IEPP créent n'importe quel compte ; le Directeur ne peut
+    créer que des comptes Instituteur, forcés côté serveur (voir UserViewSet)."""
+    def has_permission(self, request, view):
+        return bool(
+            request.user and request.user.is_authenticated
+            and request.user.role in (Role.ADMIN, Role.CHEF_IEPP, Role.DIRECTEUR)
+        )

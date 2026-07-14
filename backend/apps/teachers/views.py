@@ -4,7 +4,7 @@ from .models import Classe, TeacherProfile
 from .serializers import ClasseSerializer, TeacherSerializer
 from .permissions import ClassePermission, TeacherManagePermission
 from apps.subscriptions.permissions import SubscriptionActivePermission
-
+from django.core.exceptions import ObjectDoesNotExist
 
 class ClasseViewSet(viewsets.ModelViewSet):
     serializer_class = ClasseSerializer
@@ -46,7 +46,13 @@ class TeacherViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         user = self.request.user
         if user.role == Role.INSTITUTEUR:
-            # Un instituteur ne peut pas se réaffecter lui-même
-            serializer.validated_data.get("teacher_profile", {}).pop("ecole", None)
-            serializer.validated_data.get("teacher_profile", {}).pop("classe", None)
+         serializer.validated_data.get("teacher_profile", {}).pop("ecole", None)
+         serializer.validated_data.get("teacher_profile", {}).pop("classe", None)
+        if user.role == Role.DIRECTEUR and "teacher_profile" in serializer.validated_data:
+           try:
+            ecole_du_directeur = user.ecole_dirigee
+           except ObjectDoesNotExist:
+            ecole_du_directeur = None
+           if ecole_du_directeur:
+            serializer.validated_data["teacher_profile"]["ecole"] = ecole_du_directeur
         serializer.save()

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User
-
+from django.core.exceptions import ObjectDoesNotExist
 
 class UserSerializer(serializers.ModelSerializer):
     role_display = serializers.CharField(source="get_role_display", read_only=True)
@@ -79,10 +79,11 @@ class DirectorSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
     def get_ecole_affectee(self, obj):
-        ecole = obj.ecole_dirigee.first()
-        if ecole:
-            return {"id": ecole.id, "nom": ecole.nom, "code": ecole.code}
-        return None
+        try:
+            ecole = obj.ecole_dirigee
+        except ObjectDoesNotExist:
+         return None
+        return {"id": ecole.id, "nom": ecole.nom, "code": ecole.code}
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop("director_profile", {})

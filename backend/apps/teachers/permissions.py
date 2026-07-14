@@ -40,7 +40,9 @@ class TeacherManagePermission(permissions.BasePermission):
             return True
         if user.role == Role.DIRECTEUR:
             profile = getattr(obj, "teacher_profile", None)
-            return bool(profile and profile.ecole and profile.ecole.directeur_id == user.id)
+            if not profile or not profile.ecole_id:
+                return True  # instituteur pas encore affecté : le Directeur peut se l'approprier
+            return profile.ecole.directeur_id == user.id
         if user.role == Role.INSTITUTEUR:
             return obj.id == user.id
         return False

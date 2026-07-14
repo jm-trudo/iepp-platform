@@ -54,6 +54,9 @@ class SchoolViewSet(viewsets.ModelViewSet):
             return qs.filter(secteur=secteur) if secteur else qs.none()
         if user.role == Role.DIRECTEUR:
             return qs.filter(directeur=user)
+        if user.role == Role.INSTITUTEUR:
+            profile = getattr(user, "teacher_profile", None)
+            return qs.filter(id=profile.ecole_id) if profile and profile.ecole_id else qs.none()
         return qs.none()
     
     def perform_create(self, serializer):

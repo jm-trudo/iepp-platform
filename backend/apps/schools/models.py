@@ -13,6 +13,7 @@ class Sector(models.Model):
     def __str__(self):
         return self.nom
 
+
 class TypeEcole(models.TextChoices):
     PUBLIQUE = "PUBLIQUE", "Publique"
     PRIVEE = "PRIVEE", "Privée"
@@ -28,15 +29,23 @@ class Milieu(models.TextChoices):
 class School(models.Model):
     nom = models.CharField(max_length=200, verbose_name="Nom de l'école")
     code = models.CharField(max_length=30, unique=True, verbose_name="Code école")
-    type_ecole = models.CharField(max_length=20, choices=TypeEcole.choices, default=TypeEcole.PUBLIQUE)
+    type_ecole = models.CharField(
+        max_length=20,
+        choices=TypeEcole.choices,
+        default=TypeEcole.PUBLIQUE,
+    )
     logo = models.ImageField(upload_to="schools/logos/", blank=True, null=True)
 
-    milieu = models.CharField(max_length=10, choices=Milieu.choices, default=Milieu.URBAIN)
+    milieu = models.CharField(
+        max_length=10,
+        choices=Milieu.choices,
+        default=Milieu.URBAIN,
+    )
     adresse = models.CharField(max_length=255, blank=True)
     telephone = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
 
-    directeur = models.ForeignKey(
+    directeur = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
@@ -45,6 +54,7 @@ class School(models.Model):
         limit_choices_to={"role": Role.DIRECTEUR},
         verbose_name="Directeur responsable",
     )
+
     secteur = models.ForeignKey(
         Sector,
         on_delete=models.SET_NULL,
@@ -65,9 +75,6 @@ class School(models.Model):
     def __str__(self):
         return f"{self.nom} ({self.code})"
 
-    # --- Compteurs : placeholders pour l'instant ---
-    # Deviendront des requêtes réelles une fois les modules
-    # Enseignants (Section 5) et Élèves (Section 6) construits.
     @property
     def nombre_enseignants(self):
         if hasattr(self, "enseignants"):
@@ -85,24 +92,27 @@ class School(models.Model):
         if hasattr(self, "classes"):
             return self.classes.count()
         return 0
-    
+
 
 class ConseillerProfile(models.Model):
     """
     Complément d'information pour les utilisateurs ayant le rôle CONSEILLER.
-    Les écoles suivies ne sont pas dupliquées ici : elles se lisent via
-    secteur.ecoles (relation déjà définie par School.secteur).
+    Les écoles suivies se lisent via secteur.ecoles.
     """
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="conseiller_profile",
     )
+
     secteur = models.ForeignKey(
-        Sector, on_delete=models.SET_NULL, null=True, blank=True,
+        Sector,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="conseillers",
     )
-
     class Meta:
         verbose_name = "Fiche Conseiller pédagogique"
         verbose_name_plural = "Fiches Conseillers pédagogiques"

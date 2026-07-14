@@ -1,14 +1,15 @@
 from rest_framework import viewsets, generics, permissions, serializers
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .models import User
-from .serializers import UserSerializer, UserCreateSerializer, CustomTokenObtainPairSerializer
-from .permissions import IsAdminOrChefIEPP
-from .models import Role, DirectorProfile
-from .serializers import DirectorSerializer
-from rest_framework import generics
-from .models import AuditLog
 from .models import User, Role, DirectorProfile, AuditLog
-
+from .serializers import (
+    UserSerializer,
+    UserCreateSerializer,
+    CustomTokenObtainPairSerializer,
+    DirectorSerializer,
+)
+from .permissions import IsAdminOrChefIEPP
+from .permissions import CanCreateTeacherAccount
+from rest_framework import serializers
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """POST /api/auth/login/  -> {access, refresh, user}"""
@@ -25,14 +26,31 @@ class MeView(generics.RetrieveUpdateAPIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    """CRUD des comptes utilisateurs, réservé à l'Admin et au Chef IEPP."""
     queryset = User.objects.all().order_by("last_name", "first_name")
-    permission_classes = [IsAdminOrChefIEPP]
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [CanCreateTeacherAccount()]
+        return [IsAdminOrChefIEPP()]
 
     def get_serializer_class(self):
         if self.action == "create":
             return UserCreateSerializer
         return UserSerializer
+
+    def perform_create(self, serializer):
+        createur = self.request.user
+        if createur.role == Role.DIRECTEUR:
+            serializer.save(role=Role.INSTITUTEUR)
+        elif createur.role == Role.CHEF_IEPP:
+             role_demande = serializer.validated_data.get("role")
+             if role_demande not in (Role.DIRECTEUR, Role.INSTITUTEUR, Role.CONSEILLER):
+              raise serializers.ValidationError(
+                {"role": "Vous ne pouvez créer que des comptes Directeur, Instituteur ou Conseiller."}
+            )
+             serializer.save()
+        else:  # ADMIN
+            serializer.save()
     
 
 class DirectorViewSet(viewsets.ModelViewSet):
@@ -45,7 +63,7 @@ class DirectorViewSet(viewsets.ModelViewSet):
     """
     serializer_class = DirectorSerializer
     queryset = User.objects.filter(role=Role.DIRECTEUR).select_related(
-    "director_profile"
+    "director_profile", "ecole_dirigee"
 ).prefetch_related("ecole_dirigee")
     
 
