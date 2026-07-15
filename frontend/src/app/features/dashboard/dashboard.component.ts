@@ -8,23 +8,32 @@ import { Chart, registerables } from 'chart.js';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { DashboardData } from '../../core/models/dashboard.model';
 import { AuthService } from '../../core/services/auth.service';
+import { HeroBannerComponent } from '../../shared/components/hero-banner/hero-banner.component';
 
 Chart.register(...registerables);
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatIconModule, MatTableModule, MatChipsModule],
+  imports: [
+    CommonModule,
+    MatCardModule,
+    MatIconModule,
+    MatTableModule,
+    MatChipsModule,
+    HeroBannerComponent
+  ],
   template: `
-    <h2>Tableau de bord</h2>
+    <app-hero-banner
+      [titre]="messageAccueil()"
+      [sousTitre]="sousTitreAccueil()"
+    ></app-hero-banner>
 
     @if (!auth.hasRole('ADMIN', 'CHEF_IEPP')) {
-      <!-- Vue simplifiée pour les autres rôles -->
-      <mat-card class="iepp-carte carte-bienvenue">
-        <mat-icon class="icone-bienvenue">waving_hand</mat-icon>
-        <h3>Bienvenue, {{ auth.currentUser()?.first_name || auth.currentUser()?.username }}</h3>
-        <p>Utilisez le menu à gauche pour accéder aux modules disponibles pour votre rôle.</p>
-      </mat-card>
+       <mat-card class="iepp-carte carte-raccourcis">
+          <mat-icon class="icone-info">explore</mat-icon>
+          <p>Utilisez le menu à gauche pour accéder aux modules disponibles pour votre rôle.</p>
+       </mat-card>
     } @else if (chargement()) {
       <p class="message-etat">Chargement des statistiques...</p>
     } @else if (donnees(); as d) {
@@ -144,13 +153,14 @@ Chart.register(...registerables);
     }
   `,
   styles: [`
-    .carte-bienvenue {
+    .carte-raccourcis {
       text-align: center;
-      padding: 48px 24px;
+      padding: 32px 24px;
       max-width: 500px;
-      margin: 40px auto;
-    }
-    .icone-bienvenue { font-size: 48px; width: 48px; height: 48px; color: var(--iepp-orange); }
+      margin: 0 auto;
+      color: #757575;
+   }
+    .icone-info { font-size: 36px; width: 36px; height: 36px; color: var(--iepp-orange); margin-bottom: 8px; }
 
     .message-etat, .message-vide { text-align: center; color: #757575; padding: 24px; }
 
@@ -261,4 +271,23 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       },
     });
   }
+ messageAccueil(): string {
+    const user = this.auth.currentUser();
+    const prenom = user?.first_name || user?.username || '';
+    const heure = new Date().getHours();
+    const salutation = heure < 12 ? 'Bonjour' : heure < 18 ? 'Bon après-midi' : 'Bonsoir';
+    return `${salutation}, ${prenom}`;
+}
+
+sousTitreAccueil(): string {
+    const user = this.auth.currentUser();
+    switch (user?.role) {
+      case 'ADMIN': return 'Vue d\'ensemble de toutes les circonscriptions.';
+      case 'CHEF_IEPP': return 'Voici un aperçu de votre circonscription aujourd\'hui.';
+      case 'DIRECTEUR': return 'Gérez votre établissement depuis cet espace.';
+      case 'INSTITUTEUR': return 'Retrouvez vos classes et vos élèves.';
+      case 'CONSEILLER': return 'Suivi pédagogique de votre secteur.';
+      default: return '';
+    }
+} 
 }
