@@ -53,10 +53,23 @@ def connecter_signaux_audit():
             post_delete.connect(_apres_suppression, sender=model, weak=False)
 
        
+@receiver(post_save, sender=User)
 def creer_circonscription_pour_nouveau_chef(sender, instance, created, **kwargs):
     if created and instance.role == Role.CHEF_IEPP:
+        from datetime import timedelta
+        from django.utils import timezone
         from apps.circonscriptions.models import Circonscription
+        from apps.subscriptions.models import Subscription, StatutAbonnement
+
         Circonscription.objects.get_or_create(
             chef=instance,
             defaults={"nom": f"Circonscription de {instance.get_full_name() or instance.username}"},
-        )    
+        )
+        Subscription.objects.get_or_create(
+            chef=instance,
+            defaults={
+                "date_debut": timezone.now().date(),
+                "date_fin": timezone.now().date() + timedelta(days=14),
+                "statut": StatutAbonnement.ESSAI,
+            },
+        )

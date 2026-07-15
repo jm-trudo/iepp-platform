@@ -5,6 +5,7 @@ from apps.users.models import Role
 
 
 class StatutAbonnement(models.TextChoices):
+    ESSAI = "ESSAI", "Période d'essai"
     ACTIF = "ACTIF", "Actif"
     EXPIRE = "EXPIRE", "Expiré"
     SUSPENDU = "SUSPENDU", "Suspendu"
@@ -42,21 +43,17 @@ class Subscription(models.Model):
         return f"Abonnement {self.chef} — {self.get_statut_display()} (jusqu'au {self.date_fin})"
 
     def actualiser_statut(self):
-        """Recalcule le statut selon la date du jour (sauf si suspendu manuellement)."""
         if self.statut == StatutAbonnement.SUSPENDU:
             return
         today = timezone.now().date()
-        nouveau_statut = (
-            StatutAbonnement.ACTIF if self.date_debut <= today <= self.date_fin
-            else StatutAbonnement.EXPIRE
-        )
-        if nouveau_statut != self.statut:
-            self.statut = nouveau_statut
-            self.save(update_fields=["statut"])
+        if not (self.date_debut <= today <= self.date_fin):
+            if self.statut != StatutAbonnement.EXPIRE:
+                self.statut = StatutAbonnement.EXPIRE
+                self.save(update_fields=["statut"])
 
     def est_active(self):
         today = timezone.now().date()
-        return self.statut == StatutAbonnement.ACTIF and self.date_debut <= today <= self.date_fin
+        return self.statut in (StatutAbonnement.ACTIF, StatutAbonnement.ESSAI) and self.date_debut <= today <= self.date_fin
 
     @property
     def jours_restants(self):
