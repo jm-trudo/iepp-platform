@@ -10,6 +10,7 @@ class Circonscription(models.Model):
         related_name="circonscription_dirigee",
         limit_choices_to={"role": "CHEF_IEPP"},
     )
+    logo = models.ImageField(upload_to="circonscriptions/logos/", blank=True, null=True)
     date_creation = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -8,7 +8,7 @@ class CirconscriptionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Circonscription
-        fields = ["id", "nom", "chef", "chef_nom", "nombre_ecoles", "date_creation"]
+        fields = ["id", "nom", "chef", "chef_nom", "logo", "nombre_ecoles", "date_creation"]
         read_only_fields = ["id", "chef", "date_creation"]
 
     def get_nombre_ecoles(self, obj):
