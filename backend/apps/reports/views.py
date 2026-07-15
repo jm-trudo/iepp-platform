@@ -204,37 +204,54 @@ def _pdf_response(buffer, nom_fichier):
 
 
 class EcolesPdfView(APIView):
-    """GET /api/reports/ecoles/pdf/ — réservé Admin/Chef IEPP."""
-    permission_classes = [IsAdminOrChefIEPP, SubscriptionActivePermission]
+    """GET /api/reports/ecoles/pdf/ — Admin (global) ou Chef IEPP (sa circonscription)."""
+    permission_classes = [IsAdminOrChefIEPP]
 
     def get(self, request):
-        buffer = generators.liste_ecoles_pdf(School.objects.select_related("directeur", "secteur"))
+        user = request.user
+        qs = School.objects.select_related("directeur", "secteur")
+
+        if user.role == Role.CHEF_IEPP:
+            circo = _circonscription_de(user)
+            if not circo:
+                return Response({"detail": "Aucune circonscription associée à ce compte."}, status=400)
+            qs = qs.filter(circonscription=circo)
+
+        buffer = generators.liste_ecoles_pdf(qs)
         return _pdf_response(buffer, "liste_ecoles.pdf")
 
 
 class EnseignantsPdfView(APIView):
-    """GET /api/reports/enseignants/pdf/?ecole=<id> — Admin/Chef IEPP (tout), Directeur (son école)."""
-    permission_classes = [IsAuthenticated, SubscriptionActivePermission]
+    """GET /api/reports/enseignants/pdf/?ecole=<id> — Admin (global), Chef IEPP (sa circonscription), Directeur (son école)."""
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
         qs = User.objects.filter(role=Role.INSTITUTEUR).select_related("teacher_profile")
         ecole_id = request.query_params.get("ecole")
 
-        if user.role == Role.DIRECTEUR:
+        if user.role == Role.ADMIN:
+            if ecole_id:
+                qs = qs.filter(teacher_profile__ecole_id=ecole_id)
+        elif user.role == Role.CHEF_IEPP:
+            circo = _circonscription_de(user)
+            if not circo:
+                return Response({"detail": "Aucune circonscription associée à ce compte."}, status=400)
+            qs = qs.filter(teacher_profile__ecole__circonscription=circo)
+            if ecole_id:
+                qs = qs.filter(teacher_profile__ecole_id=ecole_id)
+        elif user.role == Role.DIRECTEUR:
             qs = qs.filter(teacher_profile__ecole__directeur=user)
-        elif user.role not in (Role.ADMIN, Role.CHEF_IEPP):
+        else:
             return Response({"detail": "Non autorisé."}, status=403)
-        elif ecole_id:
-            qs = qs.filter(teacher_profile__ecole_id=ecole_id)
 
         buffer = generators.liste_enseignants_pdf(qs)
         return _pdf_response(buffer, "liste_enseignants.pdf")
 
 
 class ElevesPdfView(APIView):
-    """GET /api/reports/eleves/pdf/?classe=<id> — Admin/Chef IEPP/Directeur/Instituteur, selon leur périmètre."""
-    permission_classes = [IsAuthenticated, SubscriptionActivePermission]
+    """GET /api/reports/eleves/pdf/?classe=<id> — filtré selon le périmètre de chaque rôle."""
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
@@ -245,7 +262,8 @@ class ElevesPdfView(APIView):
         if classe_id:
             classe = get_object_or_404(Classe, pk=classe_id)
             autorise = (
-                user.role in (Role.ADMIN, Role.CHEF_IEPP)
+                user.role == Role.ADMIN
+                or (user.role == Role.CHEF_IEPP and _circonscription_de(user) == classe.ecole.circonscription)
                 or (user.role == Role.DIRECTEUR and classe.ecole.directeur_id == user.id)
                 or (user.role == Role.INSTITUTEUR and classe.enseignants.filter(user=user).exists())
             )
@@ -254,8 +272,13 @@ class ElevesPdfView(APIView):
             qs = qs.filter(classe=classe)
             titre_complement = str(classe)
         else:
-            if user.role in (Role.ADMIN, Role.CHEF_IEPP):
+            if user.role == Role.ADMIN:
                 pass
+            elif user.role == Role.CHEF_IEPP:
+                circo = _circonscription_de(user)
+                if not circo:
+                    return Response({"detail": "Aucune circonscription associée à ce compte."}, status=400)
+                qs = qs.filter(ecole__circonscription=circo)
             elif user.role == Role.DIRECTEUR:
                 qs = qs.filter(ecole__directeur=user)
             elif user.role == Role.INSTITUTEUR:
@@ -291,11 +314,13 @@ class BulletinPdfView(APIView):
 
 
 class StatistiquesPdfView(APIView):
-    """GET /api/reports/statistiques/pdf/?annee_scolaire=2025-2026 — réservé Admin/Chef IEPP."""
-    permission_classes = [IsAdminOrChefIEPP, SubscriptionActivePermission]
+    """GET /api/reports/statistiques/pdf/?annee_scolaire=2025-2026 — Admin (global) ou Chef IEPP (sa circonscription)."""
+    permission_classes = [IsAdminOrChefIEPP]
 
     def get(self, request):
         annee = request.query_params.get("annee_scolaire")
-        donnees = DashboardView().get(request).data  # réutilise le calcul déjà écrit à la Section 10
-        buffer = generators.statistiques_pdf(donnees, annee)
-        return _pdf_response(buffer, "statistiques_circonscription.pdf")  
+        reponse_dashboard = DashboardView().get(request)
+        if reponse_dashboard.status_code != 200:
+            return reponse_dashboard
+        buffer = generators.statistiques_pdf(reponse_dashboard.data, annee)
+        return _pdf_response(buffer, "statistiques_circonscription.pdf")
