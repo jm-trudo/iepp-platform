@@ -4,15 +4,14 @@ from decouple import config, Csv
 DEBUG = False
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
 
+import dj_database_url
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DB_NAME"),
-        "USER": config("DB_USER"),
-        "PASSWORD": config("DB_PASSWORD"),
-        "HOST": config("DB_HOST"),
-        "PORT": config("DB_PORT", default="5432"),
-    }
+    "default": dj_database_url.config(
+        default=config("DATABASE_URL", default=""),
+        conn_max_age=600,
+        ssl_require=True,
+    )
 }
 
 SECURE_SSL_REDIRECT = True
