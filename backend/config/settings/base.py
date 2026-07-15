@@ -27,6 +27,7 @@ INSTALLED_APPS = [
 
     # Applications métier de la plateforme IEPP
     "apps.users",
+    "apps.circonscriptions",
     "apps.schools",
     "apps.teachers",
     "apps.students",

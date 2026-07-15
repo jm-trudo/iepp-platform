@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 from apps.users.models import Role
-
+from apps.circonscriptions.models import Circonscription
 
 class Sector(models.Model):
     nom = models.CharField(max_length=150, unique=True)
@@ -62,6 +62,13 @@ class School(models.Model):
         blank=True,
         related_name="ecoles",
         verbose_name="Secteur pédagogique",
+    )
+
+    circonscription = models.ForeignKey(
+    Circonscription,
+    on_delete=models.CASCADE,
+    related_name="ecoles",
+    # temporaire, pour permettre la migration de données existantes
     )
 
     date_creation = models.DateTimeField(auto_now_add=True)

@@ -2,6 +2,8 @@ from django.db.models.signals import post_save, post_delete
 from django.apps import apps as django_apps
 from .middleware import get_current_user
 from .models import AuditLog, ActionAudit
+from django.dispatch import receiver
+from .models import User, Role
 
 # Modèles explicitement exclus de la journalisation (bruit ou risque de boucle).
 MODELES_EXCLUS = {"AuditLog", "Session", "LogEntry", "MigrationRecorder"}
@@ -49,3 +51,12 @@ def connecter_signaux_audit():
                 continue
             post_save.connect(_apres_sauvegarde, sender=model, weak=False)
             post_delete.connect(_apres_suppression, sender=model, weak=False)
+
+       
+def creer_circonscription_pour_nouveau_chef(sender, instance, created, **kwargs):
+    if created and instance.role == Role.CHEF_IEPP:
+        from apps.circonscriptions.models import Circonscription
+        Circonscription.objects.get_or_create(
+            chef=instance,
+            defaults={"nom": f"Circonscription de {instance.get_full_name() or instance.username}"},
+        )    

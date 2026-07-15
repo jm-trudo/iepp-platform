@@ -19,8 +19,14 @@ class ConseillerViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in (Role.ADMIN, Role.CHEF_IEPP):
+        if user.role == Role.ADMIN:
             return self.queryset
+        if user.role == Role.CHEF_IEPP:
+            circo = getattr(user, "circonscription_dirigee", None)
+            return (
+                 self.queryset.filter(conseiller_profile__secteur__ecoles__circonscription=circo).distinct()
+                 if circo else self.queryset.none()
+            )
         return self.queryset.filter(id=user.id)
 
     def perform_update(self, serializer):
@@ -44,24 +50,28 @@ class SchoolViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        qs = School.objects.select_related("directeur", "secteur").all()
+        qs = School.objects.select_related("directeur", "secteur", "circonscription").all()
 
-        if user.role in (Role.ADMIN, Role.CHEF_IEPP):
-            return qs
+        if user.role == Role.ADMIN:
+           return qs
+        if user.role == Role.CHEF_IEPP:
+             circo = getattr(user, "circonscription_dirigee", None)
+             return qs.filter(circonscription=circo) if circo else qs.none()
         if user.role == Role.CONSEILLER:
-            profile = getattr(user, "conseiller_profile", None)
-            secteur = profile.secteur if profile else None
-            return qs.filter(secteur=secteur) if secteur else qs.none()
+           profile = getattr(user, "conseiller_profile", None)
+           secteur = profile.secteur if profile else None
+           return qs.filter(secteur=secteur) if secteur else qs.none()
         if user.role == Role.DIRECTEUR:
-            return qs.filter(directeur=user)
+           return qs.filter(directeur=user)
         if user.role == Role.INSTITUTEUR:
-            profile = getattr(user, "teacher_profile", None)
-            return qs.filter(id=profile.ecole_id) if profile and profile.ecole_id else qs.none()
+           profile = getattr(user, "teacher_profile", None)
+           return qs.filter(id=profile.ecole_id) if profile and profile.ecole_id else qs.none()
         return qs.none()
-    
+
     def perform_create(self, serializer):
         user = self.request.user
-        if user.role == Role.DIRECTEUR:
-            serializer.save(directeur=user)
-        else:
+        if user.role == Role.CHEF_IEPP:
+            circo = getattr(user, "circonscription_dirigee", None)
+            serializer.save(circonscription=circo)
+        else:  # ADMIN
             serializer.save()

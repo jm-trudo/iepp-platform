@@ -17,49 +17,83 @@ from apps.teachers.models import Classe
 from apps.students.models import Student
 from . import generators
 from apps.subscriptions.permissions import SubscriptionActivePermission
+from apps.circonscriptions.models import Circonscription
 
 def _arrondi(valeur):
     return round(float(valeur), 2) if valeur is not None else None
 
 
+from apps.users.models import Role
+from apps.circonscriptions.models import Circonscription
+
+
+def _circonscription_de(user):
+    """Renvoie la Circonscription dirigée par ce Chef IEPP, ou None."""
+    return getattr(user, "circonscription_dirigee", None)
+
+
 class DashboardView(APIView):
     """
-    Tableau de bord du Chef IEPP : statistiques générales, moyennes,
-    classements et commentaires pédagogiques automatiques.
-    Réservé à l'Admin système et au Chef de Circonscription.
+    Tableau de bord : statistiques générales, moyennes, classements et
+    commentaires pédagogiques automatiques.
+    - Admin : vue globale, toutes circonscriptions confondues.
+    - Chef IEPP : vue strictement limitée à sa propre circonscription.
     Filtre optionnel : ?annee_scolaire=2025-2026
     """
-    permission_classes = [IsAdminOrChefIEPP, SubscriptionActivePermission]
+    permission_classes = [IsAdminOrChefIEPP]
 
     def get(self, request):
         annee = request.query_params.get("annee_scolaire")
+        user = request.user
+
+        circo = None
+        if user.role == Role.CHEF_IEPP:
+            circo = _circonscription_de(user)
+            if not circo:
+                return Response(
+                    {"detail": "Aucune circonscription associée à ce compte."},
+                    status=400,
+                )
+
         notes_qs = Note.objects.all()
+        if circo:
+            notes_qs = notes_qs.filter(classe__ecole__circonscription=circo)
         if annee:
             notes_qs = notes_qs.filter(annee_scolaire=annee)
 
-        moyennes_classes = self._moyennes_par_classe(notes_qs)
-        moyennes_ecoles = self._moyennes_par_ecole(notes_qs)
-
         data = {
-            "statistiques_generales": self._statistiques_generales(),
+            "statistiques_generales": self._statistiques_generales(circo),
             "moyennes_par_matiere": self._moyennes_par_matiere(notes_qs),
             "classement_eleves": self._classement_eleves(notes_qs),
-            "classement_classes": moyennes_classes,
-            "classement_ecoles": moyennes_ecoles,
+            "classement_classes": self._moyennes_par_classe(notes_qs),
+            "classement_ecoles": self._moyennes_par_ecole(notes_qs),
             "analyse_pedagogique": self._analyse_pedagogique(notes_qs),
         }
         return Response(data)
 
-    def _statistiques_generales(self):
+    def _statistiques_generales(self, circo):
+        ecoles_qs = School.objects.all()
+        enseignants_qs = User.objects.filter(role=Role.INSTITUTEUR)
+        eleves_qs = Student.objects.all()
+        classes_qs = Classe.objects.all()
+        directeurs_qs = User.objects.filter(role=Role.DIRECTEUR)
+        demandes_qs = AuthorizationRequest.objects.filter(statut=StatutDemande.EN_ATTENTE)
+
+        if circo:
+            ecoles_qs = ecoles_qs.filter(circonscription=circo)
+            enseignants_qs = enseignants_qs.filter(teacher_profile__ecole__circonscription=circo)
+            eleves_qs = eleves_qs.filter(ecole__circonscription=circo)
+            classes_qs = classes_qs.filter(ecole__circonscription=circo)
+            directeurs_qs = directeurs_qs.filter(ecole_dirigee__circonscription=circo)
+            demandes_qs = demandes_qs.filter(ecole__circonscription=circo)
+
         return {
-            "nombre_ecoles": School.objects.count(),
-            "nombre_enseignants": User.objects.filter(role=Role.INSTITUTEUR).count(),
-            "nombre_eleves": Student.objects.count(),
-            "nombre_classes": Classe.objects.count(),
-            "nombre_directeurs": User.objects.filter(role=Role.DIRECTEUR).count(),
-            "nombre_demandes_en_attente": AuthorizationRequest.objects.filter(
-                statut=StatutDemande.EN_ATTENTE
-            ).count(),
+            "nombre_ecoles": ecoles_qs.count(),
+            "nombre_enseignants": enseignants_qs.distinct().count(),
+            "nombre_eleves": eleves_qs.count(),
+            "nombre_classes": classes_qs.count(),
+            "nombre_directeurs": directeurs_qs.distinct().count(),
+            "nombre_demandes_en_attente": demandes_qs.count(),
         }
 
     def _moyennes_par_matiere(self, notes_qs):

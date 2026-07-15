@@ -10,6 +10,8 @@ from .serializers import (
 from .permissions import IsAdminOrChefIEPP
 from .permissions import CanCreateTeacherAccount
 from rest_framework import serializers
+from django.db.models import Q
+from apps.schools.models import School
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """POST /api/auth/login/  -> {access, refresh, user}"""
@@ -33,6 +35,23 @@ class UserViewSet(viewsets.ModelViewSet):
             return [CanCreateTeacherAccount()]
         return [IsAdminOrChefIEPP()]
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = User.objects.all().order_by("last_name", "first_name")
+        if user.role == Role.ADMIN:
+            return qs
+        if user.role == Role.CHEF_IEPP:
+            circo = getattr(user, "circonscription_dirigee", None)
+            if not circo:
+                return qs.filter(id=user.id)
+            return qs.filter(
+                Q(id=user.id)
+                | Q(ecole_dirigee__circonscription=circo)
+                | Q(teacher_profile__ecole__circonscription=circo)
+                | Q(conseiller_profile__secteur__ecoles__circonscription=circo)
+            ).distinct()
+        return qs.filter(id=user.id)
+
     def get_serializer_class(self):
         if self.action == "create":
             return UserCreateSerializer
@@ -43,12 +62,12 @@ class UserViewSet(viewsets.ModelViewSet):
         if createur.role == Role.DIRECTEUR:
             serializer.save(role=Role.INSTITUTEUR)
         elif createur.role == Role.CHEF_IEPP:
-             role_demande = serializer.validated_data.get("role")
-             if role_demande not in (Role.DIRECTEUR, Role.INSTITUTEUR, Role.CONSEILLER):
-              raise serializers.ValidationError(
-                {"role": "Vous ne pouvez créer que des comptes Directeur, Instituteur ou Conseiller."}
-            )
-             serializer.save()
+            role_demande = serializer.validated_data.get("role")
+            if role_demande not in (Role.DIRECTEUR, Role.INSTITUTEUR, Role.CONSEILLER):
+                raise serializers.ValidationError(
+                    {"role": "Vous ne pouvez créer que des comptes Directeur, Instituteur ou Conseiller."}
+                )
+            serializer.save()
         else:  # ADMIN
             serializer.save()
     
@@ -74,9 +93,11 @@ class DirectorViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in (Role.ADMIN, Role.CHEF_IEPP):
+        if user.role == Role.ADMIN:
             return self.queryset
-        # Un Directeur ne voit que sa propre fiche
+        if user.role == Role.CHEF_IEPP:
+            circo = getattr(user, "circonscription_dirigee", None)
+            return self.queryset.filter(ecole_dirigee__circonscription=circo) if circo else self.queryset.none()
         return self.queryset.filter(id=user.id)
 
     def perform_update(self, serializer):
