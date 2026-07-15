@@ -9,6 +9,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../../core/services/auth.service';
 import { NavigationService } from '../../core/services/navigation.service';
+import { CirconscriptionService } from '../../core/services/circonscription.service';
+import { OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-main-layout',
@@ -21,10 +23,14 @@ import { NavigationService } from '../../core/services/navigation.service';
   template: `
     <mat-sidenav-container class="conteneur-principal">
       <mat-sidenav #sidenav [mode]="modeMenu()" [opened]="menuOuvert()" class="menu-lateral">
-        <div class="entete-menu">
+      <div class="entete-menu">
+          @if (logoCirconscription()) {
+            <img [src]="logoCirconscription()" alt="Logo" class="logo-circonscription" />
+        } @else {
           <mat-icon class="icone-logo">school</mat-icon>
-          <span class="titre-app">Plateforme IEPP</span>
-        </div>
+        }
+        <span class="titre-app">{{ nomCirconscription() || 'Plateforme IEPP' }}</span>
+      </div>
 
         <mat-nav-list>
           @for (item of menus(); track item.route) {
@@ -130,26 +136,49 @@ import { NavigationService } from '../../core/services/navigation.service';
     @media (max-width: 480px) {
       .contenu-page { padding: 8px; }
     }
+      .logo-circonscription {
+            width: 28px; height: 28px;
+            object-fit: contain;
+            border-radius: 4px;
+            background: white;
+            padding: 2px;
+    }
   `],
 })
-export class MainLayoutComponent {
+export class MainLayoutComponent implements OnInit {
   menus = computed(() => {
     const user = this.auth.currentUser();
     return user ? this.navigation.menusPourRole(user.role) : [];
   });
 
+  logoCirconscription = signal<string | null>(null);
+  nomCirconscription = signal<string | null>(null);
+
   estMobile = signal(window.innerWidth < 768);
   modeMenu = computed(() => (this.estMobile() ? 'over' : 'side'));
   menuOuvert = computed(() => !this.estMobile());
 
-  constructor(public auth: AuthService, private navigation: NavigationService) {
+  constructor(
+    public auth: AuthService,
+    private navigation: NavigationService,
+    private circonscriptionService: CirconscriptionService,
+  ) {
     window.addEventListener('resize', () => {
       this.estMobile.set(window.innerWidth < 768);
     });
   }
 
-  fermerSiMobile() {
-    // Le tiroir se referme automatiquement au clic sur un lien, en mode mobile uniquement
-    // (mat-sidenav mode="over" gère déjà la fermeture au clic hors du tiroir).
+  ngOnInit() {
+    this.circonscriptionService.maCirconscription().subscribe({
+      next: (c) => {
+        this.logoCirconscription.set(c.logo);
+        this.nomCirconscription.set(c.nom);
+      },
+      error: () => {
+        // Admin ou compte sans circonscription : garde l'icône par défaut, silencieux.
+      },
+    });
   }
+
+  fermerSiMobile() {}
 }

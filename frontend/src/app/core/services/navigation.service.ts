@@ -13,6 +13,7 @@ export class NavigationService {
     { label: 'Autorisations', icone: 'assignment', route: '/authorizations', rolesAutorises: ['ADMIN', 'CHEF_IEPP', 'DIRECTEUR', 'INSTITUTEUR', 'CONSEILLER'] },
     { label: 'Abonnement', icone: 'card_membership', route: '/subscriptions', rolesAutorises: ['ADMIN', 'CHEF_IEPP'] },
     { label: 'Utilisateurs', icone: 'manage_accounts', route: '/settings/users', rolesAutorises: ['ADMIN', 'CHEF_IEPP'] },
+    { label: 'Ma circonscription', icone: 'account_balance', route: '/settings/circonscription', rolesAutorises: ['CHEF_IEPP'] },
   ];
 
   menusPourRole(role: string): NavItem[] {

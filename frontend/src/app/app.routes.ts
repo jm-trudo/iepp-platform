@@ -131,6 +131,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/settings/user-form.component').then((m) => m.UserFormComponent),
       },
+      {
+        path: 'settings/circonscription',
+        loadComponent: () =>
+          import('./features/settings/circonscription-settings.component').then((m) => m.CirconscriptionSettingsComponent),
+      },
     ],
   },
 ];
